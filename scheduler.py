@@ -41,7 +41,7 @@ class poller:
 
         values = dict()
 
-        if result.returncode <= 2:
+        if result.returncode <= 2 and result.returncode >= 0:
             values['check-duration'] = end_t - start_t
 
             pipe = rc_str.find('|')
