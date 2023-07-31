@@ -6,6 +6,7 @@
 from configuration import *
 import datetime
 import emails
+import html
 from influxdb import InfluxDBClient
 import mysql.connector
 import re
@@ -142,9 +143,13 @@ class poller:
         ch.execute('SELECT email FROM contactgroups, contacts WHERE contactgroups.group_nr=%s AND contactgroups.contact_nr=contacts.nr' % group_nr)
 
         for row in ch.fetchall():
-            new_state = self.state_to_str(check_result[2]);
+            new_state = self.state_to_str(check_result[2])
 
-            message = emails.html(html=f'<p>State of {check_name} on {host_name} went from {previous_state} to {new_state}</p><p>Output: {check_result[0]}</p>',
+            # TODO: this is not XSS safe:
+            # (in case a plugin returns unchecked user data)
+            escaped_output = html.escape({check_result[0]})
+
+            message = emails.html(html=f'<p>State of {check_name} on {host_name} went from {previous_state} to {new_state}</p><p>Output: {escaped_output}</p>',
                     subject=f'State for {check_name}@{host_name}: {new_state}', mail_from=(self.email_from, self.email_addr))
 
             r = message.send(to=row['email'], smtp={'host': self.email_smtp, 'timeout': 15})
