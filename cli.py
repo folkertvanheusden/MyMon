@@ -65,13 +65,13 @@ elif sys.argv[1] == 'add-host':
     ch.execute('INSERT INTO hosts(host) VALUES(%(host)s)', { 'host': sys.argv[2] })
 
 elif sys.argv[1] == 'list-hosts':
-    list_table(dbh, "hosts", ("host"))
+    list_table(dbh, "hosts", ("host",))
 
 elif sys.argv[1] == 'add-contact':
     ch.execute('INSERT INTO contacts(email) VALUES(%(email)s)', { 'email': sys.argv[2] })
 
 elif sys.argv[1] == 'list-contacts':
-    list_table(dbh, "contacts", ("email"))
+    list_table(dbh, "contacts", ("email",))
 
 elif sys.argv[1] == 'add-local-check':
     if len(sys.argv) != 4:
