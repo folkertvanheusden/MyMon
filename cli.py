@@ -34,6 +34,40 @@ def list_table(dbh, table, columns):
 
     ch.close()
 
+def list_checks(dbh):
+    ch = dbh.cursor(dictionary=True)
+
+#*| nr                    | int(6)                                 | NO   | PRI | NULL    | auto_increment |
+#*| type                  | enum('local','remote')                 | NO   |     | NULL    |                |
+#*| check_nr              | int(6)                                 | NO   |     | NULL    |                |
+#*| last_check            | datetime(3)                            | NO   |     | NULL    |                |
+#*| interval              | int(6)                                 | NO   |     | NULL    |                |
+#*| status                | enum('ok','warning','fatal','unknown') | NO   |     | NULL    |                |
+#*| host_nr               | int(6)                                 | NO   | MUL | NULL    |                |
+#*| last_check_result_str | text                                   | NO   |     | NULL    |                |
+#*| contact_nr            | int(6)                                 | NO   | MUL | NULL    |                |
+
+    ch.execute('''
+SELECT
+    type, interval, status, l.check_name AS local_name, r.check_name AS remote_name, host
+FROM
+    checks, checks_local as l, checks_remote as r, hosts
+WHERE
+    l.nr=checks.check_nr AND r.nr=checks.check_nr AND host.nr=checks.host_nr
+''')
+
+    for row in ch.fetchall():
+        if row['type'] == 'local':
+            del row['remote_name']
+
+        else:
+            del row['local_name']
+
+        col_vals = [row[col] for col in row]
+
+        print('\t'.join(col_vals))
+
+    ch.close()
 
 ch = dbh.cursor(dictionary=True)
 
@@ -124,7 +158,7 @@ elif sys.argv[1] == 'add-check':
         ch.execute('INSERT INTO checks (type, check_nr, last_check, `interval`, status, host_nr, last_check_result_str, contact_nr) VALUES(%(type)s, %(check_nr)s, "0000-00-00 00:00:00", %(interval)s, "unknown", %(host_nr)s, "", %(contact_nr)s)', values)
 
 elif sys.argv[1] == 'list-checks':
-    pass  # TODO
+    list_checks(dbh)
 
 else:
     print(f'"{sys.argv[1]}" is not understood')
