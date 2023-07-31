@@ -259,7 +259,7 @@ class poller:
                 any_started = False
 
                 # see what needs to be checked now
-                ch.execute("SELECT nr, type, check_nr, host_nr, status, contact_nr FROM checks WHERE now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) ORDER BY last_check ASC")
+                ch.execute("SELECT nr, type, check_nr, host_nr, status, contact_nr FROM checks WHERE now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00' ORDER BY last_check ASC")
 
                 for row in ch.fetchall():
                     print(f'Starting check {row["check_nr"]}')
