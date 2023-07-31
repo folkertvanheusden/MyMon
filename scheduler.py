@@ -190,7 +190,7 @@ class poller:
                     cmdline = row['cmdline']
 
                     # other k/vs
-                    ch.execute('SELECT `key`, `value` FROM keyvalue WHERE host_nr=%s AND check_nr=%s' % (host_nr, check_nr))
+                    ch.execute('SELECT `key`, `value` FROM keyvalue WHERE host_nr=%s AND check_nr=%s' % (host_nr, base_nr))
 
                     for row in ch.fetchall():
                         host_data[row['key']] = row['value']
@@ -259,13 +259,13 @@ class poller:
                 any_started = False
 
                 # see what needs to be checked now
-                ch.execute("SELECT nr, type, check_nr, host_nr, status, contact_nr FROM checks WHERE now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00' ORDER BY last_check ASC")
+                ch.execute("SELECT nr, type, check_nr, host_nr, status, contact_nr FROM checks WHERE (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1 ORDER BY last_check ASC")
 
                 for row in ch.fetchall():
                     print(f'Starting check {row["check_nr"]}')
 
                     # commit before invoking check so that it won't get executed too soon (e.g. when check_interval < check_execution_duration)
-                    ch.execute("UPDATE checks SEt last_check = now() WHERE nr=%s" % row['nr'])
+                    ch.execute("UPDATE checks SET last_check = NOW() WHERE nr=%s" % row['nr'])
                     dbh.commit()
 
                     cur_th = threading.Thread(target=self._do_poller, args=(row['nr'], row['type'], row['check_nr'], row['host_nr'], row['status'], row['contact_nr']))
