@@ -74,7 +74,7 @@ if len(sys.argv) < 2:
     print('\tlist-hosts')
     print()
     print('add/list a contact who will be alarmed when something goes wrong:')
-    print('\tadd-contact "e-mail address"')
+    print('\tadd-contact "group-name" "e-mail address"')
     print('\tlist-contacts')
     print()
     print('configure a check:')
@@ -94,7 +94,24 @@ elif sys.argv[1] == 'list-hosts':
     list_table(dbh, "hosts", ("host",))
 
 elif sys.argv[1] == 'add-contact':
-    ch.execute('INSERT INTO contacts(email) VALUES(%(email)s)', { 'email': sys.argv[2] })
+    name_parameter = { 'name': sys.argv[2] }
+
+    ch.execute('SELECT group_nr FROM contactgroupsnames WHERE name=%(name)s', name_parameter)
+
+    row = ch.fetchone()
+    if row == None:
+        ch.execute('INSERT INTO contactgroupsnames(name) VALUE(%(name)s)', name_parameter)
+
+        group_nr = ch.lastrowid
+
+    else:
+        group_nr = row['group_nr']
+
+    ch.execute('INSERT INTO contacts(email) VALUES(%(email)s)', { 'email': sys.argv[3] })
+
+    contact_nr = ch.lastrowid
+
+    ch.execute('INSERT INTO contactgroups(contact_nr, group_nr) VALUES(%s, %s)' % (contact_nr, group_nr))
 
 elif sys.argv[1] == 'list-contacts':
     list_table(dbh, "contacts", ("email",))

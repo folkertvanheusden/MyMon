@@ -2,10 +2,9 @@ CREATE TABLE `check_local` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
   `cmdline` text NOT NULL,
   `check_name` varchar(255) NOT NULL,
-  PRIMARY KEY (`nr`)
+  PRIMARY KEY (`nr`),
+  UNIQUE KEY `c_unique` (`cmdline`(255),`check_name`)
 );
-
-INSERT INTO `check_local` VALUES (1,'/usr/lib/nagios/plugins/check_ping -H %host% -4 -p 5 -c 500,50% -w 400,20%','ping'),(2,'/usr/lib/nagios/plugins/check_http -H %host% -E -j HEAD','HTTP'),(3,'/usr/lib/nagios/plugins/check_tcp -H %host% -p %port% -4 -w 2.0 -c 5.0','IRC');
 
 CREATE TABLE `check_remote` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
@@ -25,25 +24,42 @@ CREATE TABLE `checks` (
   `status` enum('ok','warning','fatal','unknown') NOT NULL,
   `host_nr` int(6) NOT NULL,
   `last_check_result_str` text NOT NULL,
-  `contact_nr` int(6) NOT NULL,
   `enabled` int(1) NOT NULL DEFAULT 0,
+  `contactgroups_nr` int(6) NOT NULL,
   PRIMARY KEY (`nr`),
-  KEY `contact_nr` (`contact_nr`),
   KEY `host_nr` (`host_nr`),
-  CONSTRAINT `checks_ibfk_1` FOREIGN KEY (`contact_nr`) REFERENCES `contacts` (`nr`),
-  CONSTRAINT `checks_ibfk_2` FOREIGN KEY (`host_nr`) REFERENCES `hosts` (`nr`)
+  KEY `contactgroups_nr` (`contactgroups_nr`),
+  CONSTRAINT `checks_ibfk_2` FOREIGN KEY (`host_nr`) REFERENCES `hosts` (`nr`),
+  CONSTRAINT `checks_ibfk_3` FOREIGN KEY (`contactgroups_nr`) REFERENCES `contactgroups` (`group_nr`)
+);
+
+CREATE TABLE `contactgroups` (
+  `group_nr` int(6) NOT NULL,
+  `contact_nr` int(6) NOT NULL,
+  PRIMARY KEY (`group_nr`,`contact_nr`),
+  KEY `contact_nr` (`contact_nr`),
+  CONSTRAINT `contactgroups_ibfk_1` FOREIGN KEY (`contact_nr`) REFERENCES `contacts` (`nr`)
+);
+
+CREATE TABLE `contactgroupsnames` (
+  `group_nr` int(6) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`group_nr`),
+  UNIQUE KEY `name` (`name`)
 );
 
 CREATE TABLE `contacts` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
   `email` varchar(255) NOT NULL,
-  PRIMARY KEY (`nr`)
+  PRIMARY KEY (`nr`),
+  KEY `inr` (`nr`)
 );
 
 CREATE TABLE `hosts` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
   `host` varchar(255) NOT NULL,
-  PRIMARY KEY (`nr`)
+  PRIMARY KEY (`nr`),
+  UNIQUE KEY `host_unique` (`host`)
 );
 
 CREATE TABLE `keyvalue` (
@@ -52,5 +68,6 @@ CREATE TABLE `keyvalue` (
   `check_nr` int(6) NOT NULL,
   `key` varchar(255) NOT NULL,
   `value` text NOT NULL,
-  PRIMARY KEY (`nr`)
+  PRIMARY KEY (`nr`),
+  UNIQUE KEY `kv_unique` (`host_nr`,`check_nr`,`key`,`value`(255))
 );

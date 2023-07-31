@@ -134,18 +134,18 @@ class poller:
 
         return f'?{state}?'
 
-    def _send_email(self, contact_nr, check_name, check_result, previous_state):
+    def _send_email(self, group_nr, host_name, check_name, check_result, previous_state):
         dbh = mysql.connector.connect(host=self.mysql_host, user=self.mysql_user, password=self.mysql_pass, database=self.mysql_db)
 
         ch = dbh.cursor(dictionary=True)
 
-        ch.execute('SELECT email FROM contacts WHERE nr=%s' % contact_nr)
+        ch.execute('SELECT email FROM contactgroups, contacts WHERE contactgroups.group_nr=%s AND contactgroups.contact_nr=contacts.nr' % group_nr)
 
         for row in ch.fetchall():
             new_state = self.state_to_str(check_result[2]);
 
-            message = emails.html(html=f'<p>State of {check_name} went from {previous_state} to {new_state}</p><p>Output: {check_result[0]}</p>',
-                    subject=f'State for {check_name}: {new_state}', mail_from=(self.email_from, self.email_addr))
+            message = emails.html(html=f'<p>State of {check_name} on {host_name} went from {previous_state} to {new_state}</p><p>Output: {check_result[0]}</p>',
+                    subject=f'State for {check_name}@{host_name}: {new_state}', mail_from=(self.email_from, self.email_addr))
 
             r = message.send(to=row['email'], smtp={'host': self.email_smtp, 'timeout': 15})
 
@@ -159,7 +159,7 @@ class poller:
 
         dbh.close()
 
-    def _do_poller(self, base_nr, type_, check_nr, host_nr, previous_state, contact_nr):
+    def _do_poller(self, base_nr, type_, check_nr, host_nr, previous_state, contactgroups_nr):
         dbh = mysql.connector.connect(host=self.mysql_host, user=self.mysql_user, password=self.mysql_pass, database=self.mysql_db)
 
         # get cmdline, replace macros, invoke
@@ -238,7 +238,7 @@ class poller:
 
             # previous_state comes from the database and is thus a string (ok, warning, ...)
             if self.state_to_str(check_result[2]) != previous_state:
-                self._send_email(contact_nr, check_name, check_result, previous_state)
+                self._send_email(contactgroups_nr, meta_data['host'], check_name, check_result, previous_state)
 
             ch = dbh.cursor()
             ch.execute('UPDATE checks SET status=%(status)s, last_check_result_str=%(result_str)s WHERE nr=%(nr)s', check_result_data)
@@ -262,7 +262,7 @@ class poller:
                 any_started = False
 
                 # see what needs to be checked now
-                ch.execute("SELECT nr, type, check_nr, host_nr, status, contact_nr FROM checks WHERE (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1 ORDER BY last_check ASC")
+                ch.execute("SELECT nr, type, check_nr, host_nr, status, contactgroups_nr FROM checks WHERE (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1 ORDER BY last_check ASC")
 
                 for row in ch.fetchall():
                     print(f'Starting check {row["check_nr"]}')
@@ -271,7 +271,7 @@ class poller:
                     ch.execute("UPDATE checks SET last_check = NOW() WHERE nr=%s" % row['nr'])
                     dbh.commit()
 
-                    cur_th = threading.Thread(target=self._do_poller, args=(row['nr'], row['type'], row['check_nr'], row['host_nr'], row['status'], row['contact_nr']))
+                    cur_th = threading.Thread(target=self._do_poller, args=(row['nr'], row['type'], row['check_nr'], row['host_nr'], row['status'], row['contactgroups_nr']))
                     cur_th.daemon = True
                     cur_th.start()
 
