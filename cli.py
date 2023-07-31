@@ -37,33 +37,24 @@ def list_table(dbh, table, columns):
 def list_checks(dbh):
     ch = dbh.cursor(dictionary=True)
 
-#*| nr                    | int(6)                                 | NO   | PRI | NULL    | auto_increment |
-#*| type                  | enum('local','remote')                 | NO   |     | NULL    |                |
-#*| check_nr              | int(6)                                 | NO   |     | NULL    |                |
-#*| last_check            | datetime(3)                            | NO   |     | NULL    |                |
-#*| interval              | int(6)                                 | NO   |     | NULL    |                |
-#*| status                | enum('ok','warning','fatal','unknown') | NO   |     | NULL    |                |
-#*| host_nr               | int(6)                                 | NO   | MUL | NULL    |                |
-#*| last_check_result_str | text                                   | NO   |     | NULL    |                |
-#*| contact_nr            | int(6)                                 | NO   | MUL | NULL    |                |
-
     ch.execute('''
 SELECT
-    type, interval, status, l.check_name AS local_name, r.check_name AS remote_name, host
+    checks.type as type, `interval`, status, l.check_name AS name, hosts.host as host, contacts.email as email
 FROM
-    checks, checks_local as l, checks_remote as r, hosts
+    checks, check_local as l, hosts, contacts
 WHERE
-    l.nr=checks.check_nr AND r.nr=checks.check_nr AND host.nr=checks.host_nr
+    l.nr=checks.check_nr AND hosts.nr=checks.host_nr AND contacts.nr=checks.contact_nr
+UNION
+SELECT
+    checks.type as type, `interval`, status, r.check_name AS name, hosts.host as host, contacts.email as email
+FROM
+    checks, check_remote as r, hosts, contacts
+WHERE
+    r.nr=checks.check_nr AND hosts.nr=checks.host_nr AND contacts.nr=checks.contact_nr
 ''')
 
     for row in ch.fetchall():
-        if row['type'] == 'local':
-            del row['remote_name']
-
-        else:
-            del row['local_name']
-
-        col_vals = [row[col] for col in row]
+        col_vals = [str(row[col]) for col in row]
 
         print('\t'.join(col_vals))
 
@@ -91,6 +82,7 @@ if len(sys.argv) < 2:
     print('\t- check-interval in seconds')
     print('\t- contact is the configured e-mail address (see add-contact)')
     print('\t- check-name is the configured check (see add-local-check)')
+    print('\tlist-checks')
     print()
     print()
     sys.exit(1)
