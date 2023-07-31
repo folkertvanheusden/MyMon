@@ -3,6 +3,7 @@
 # python3 -m pip install emails
 # python3 -m pip install influxdb
 
+from configuration import *
 import datetime
 import emails
 from influxdb import InfluxDBClient
@@ -282,7 +283,7 @@ class poller:
                 if not sleep_n_in is None:
                     sleep_n = float(sleep_n_in)
 
-                    # TODO work-around for a bug where sleep_n sometimes gets large
+                    # allows re-configuration
                     if sleep_n > 5:
                         sleep_n = 5
 
@@ -301,4 +302,7 @@ class poller:
 
                 time.sleep(0.1)
 
-p = poller('localhost', 'mymon', 'mypass', 'mymon', 'localhost', 8086, 'mymon', 'mymon', 'mymon@vanheusden.com', 'gmail-smtp-in.l.google.com')
+p = poller(db_host, db_user, db_pass, db_db, influx_host, influx_port, influx_db, email_sender_name, email_sender_address, email_smtp_server)
+
+while True:
+    time.sleep(86400.)
