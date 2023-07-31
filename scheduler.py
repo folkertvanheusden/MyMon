@@ -64,6 +64,9 @@ class poller:
                         except ValueError:
                             print(f'Invalid performance pair {pair}')
 
+            elif result.returncode < 0:
+                result.returncode = 3
+
         return (rc_str, values, result.returncode)
 
     def _put_influx(self, host, name, data):
@@ -137,10 +140,18 @@ class poller:
 
                 else:
                     check_name = row['check_name']
+                    cmdline = row['cmdline']
 
-                    processed_cmdline = self.do_escapes(row['cmdline'], host_data)
+                    # other k/vs
+                    ch.execute('SELECT `key`, `value` FROM keyvalue WHERE host_nr=%s AND check_nr=%s' % (host_nr, check_nr))
 
-                    print(f"Executing local check {check_nr}: {row['cmdline']}: {processed_cmdline}")
+                    for row in ch.fetchall():
+                        host_data[row['key']] = row['value']
+
+                    # replace macros
+                    processed_cmdline = self.do_escapes(cmdline, host_data)
+
+                    print(f"Executing local check {check_nr}: {cmdline}: {processed_cmdline}")
 
                     check_result = self._do_local_check(processed_cmdline)
 
@@ -174,6 +185,9 @@ class poller:
 
         if check_result_data != None:
             print(f'Result: {check_result_data}')
+
+            # TODO retrieve previous state
+            # if new_state != prev_state: get contact data from contact_table and send mail
 
             ch = dbh.cursor()
             ch.execute('UPDATE checks SET status=%(status)s, last_check_result_str=%(result_str)s WHERE nr=%(nr)s', check_result_data)
