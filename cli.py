@@ -20,6 +20,21 @@ def lookup(dbh, table, col, check_for):
 
     return row['nr']
 
+def list_table(dbh, table, columns):
+    ch = dbh.cursor(dictionary=True)
+
+    columns_str = ', '.join(columns)
+
+    ch.execute('SELECT ' + columns_str + ' FROM ' + table + ' ORDER BY ' + columns_str)
+
+    for row in ch.fetchall():
+        col_vals = [row[col] for col in columns]
+
+        print('\t'.join(col_vals))
+
+    ch.close()
+
+
 ch = dbh.cursor(dictionary=True)
 
 if len(sys.argv) < 2:
@@ -29,11 +44,13 @@ if len(sys.argv) < 2:
     print('configure a locally running check:')
     print('\tadd-local-check "check-name" "check command-line"')
     print()
-    print('add a host that can be checked:')
+    print('add/list a host that can be checked:')
     print('\tadd-host "hostname"')
+    print('\tlist-hosts')
     print()
-    print('add a contact who will be alarmed when something goes wrong:')
+    print('add/list a contact who will be alarmed when something goes wrong:')
     print('\tadd-contact "e-mail address"')
+    print('\tlist-contacts')
     print()
     print('configure a check:')
     print('\tadd-check "local/remote" "check-interval" "hostname" "contact" "check-name"')
@@ -47,8 +64,14 @@ if len(sys.argv) < 2:
 elif sys.argv[1] == 'add-host':
     ch.execute('INSERT INTO hosts(host) VALUES(%(host)s)', { 'host': sys.argv[2] })
 
+elif sys.argv[1] == 'list-hosts':
+    list_table(dbh, "hosts", ("host"))
+
 elif sys.argv[1] == 'add-contact':
     ch.execute('INSERT INTO contacts(email) VALUES(%(email)s)', { 'email': sys.argv[2] })
+
+elif sys.argv[1] == 'list-contacts':
+    list_table(dbh, "contacts", ("email"))
 
 elif sys.argv[1] == 'add-local-check':
     if len(sys.argv) != 4:
@@ -56,6 +79,9 @@ elif sys.argv[1] == 'add-local-check':
 
     else:
         ch.execute('INSERT INTO check_local(check_name, cmdline) VALUES(%(check_name)s, %(cmdline)s)', { 'check_name': sys.argv[2], 'cmdline': sys.argv[3] })
+
+elif sys.argv[1] == 'list-local-checks':
+    list_table(dbh, "check_local", ("check_name", "cmdline"))
 
 elif sys.argv[1] == 'add-check':
     if len(sys.argv) != 7:
@@ -96,6 +122,9 @@ elif sys.argv[1] == 'add-check':
                    }
 
         ch.execute('INSERT INTO checks (type, check_nr, last_check, `interval`, status, host_nr, last_check_result_str, contact_nr) VALUES(%(type)s, %(check_nr)s, "0000-00-00 00:00:00", %(interval)s, "unknown", %(host_nr)s, "", %(contact_nr)s)', values)
+
+elif sys.argv[1] == 'list-checks':
+    pass  # TODO
 
 else:
     print(f'"{sys.argv[1]}" is not understood')
