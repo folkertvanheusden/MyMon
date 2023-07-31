@@ -76,19 +76,19 @@ class poller:
 
         return (rc_str, values, result.returncode)
 
-    def _put_influx(self, host, name, data):
+    def _put_influx(self, meta, name, data):
         iclient = InfluxDBClient(host=self.influx_host, port=self.influx_port)
         iclient.switch_database(self.influx_db)  # TODO
 
         record = dict()
         record['measurement'] = name
 
-        record['tags'] = dict()
-        record['tags']['host'] = host
+        record['tags'] = meta
 
         record['time'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
         record['fields'] = dict()
+
         for field in data:
             field_data = data[field]
 
@@ -108,7 +108,8 @@ class poller:
 
             record['fields'][field] = field_data
 
-        iclient.write_points([ record ])
+        if iclient.write_points([ record ]) == False:
+            print('Failed writing to InfluxDB!')
 
         iclient.close()
 
@@ -167,14 +168,16 @@ class poller:
 
         check_name = None
 
+        meta_data = dict()
+
         if type_ == 'local':
             ch = dbh.cursor(dictionary=True)
 
             ch.execute('SELECT host FROM hosts WHERE nr=%s' % host_nr)
 
-            host_data = ch.fetchone()
+            meta_data = ch.fetchone()
 
-            if host_data == None:
+            if meta_data == None:
                 print(f'Host {host_nr} missing')
 
             else:
@@ -193,10 +196,10 @@ class poller:
                     ch.execute('SELECT `key`, `value` FROM keyvalue WHERE host_nr=%s AND check_nr=%s' % (host_nr, base_nr))
 
                     for row in ch.fetchall():
-                        host_data[row['key']] = row['value']
+                        meta_data[row['key']] = row['value']
 
                     # replace macros
-                    processed_cmdline = self.do_escapes(cmdline, host_data)
+                    processed_cmdline = self.do_escapes(cmdline, meta_data)
 
                     print(f"Executing local check {check_nr}: {cmdline}: {processed_cmdline}")
 
@@ -241,7 +244,7 @@ class poller:
             ch.execute('UPDATE checks SET status=%(status)s, last_check_result_str=%(result_str)s WHERE nr=%(nr)s', check_result_data)
             ch.close()
 
-            self._put_influx(host_data['host'], check_name, check_result[1])
+            self._put_influx(meta_data, check_name, check_result[1])
 
         dbh.commit()
 
