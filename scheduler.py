@@ -140,7 +140,7 @@ class poller:
 
         ch = dbh.cursor(dictionary=True)
 
-        ch.execute('SELECT email FROM contactgroups, contacts WHERE contactgroups.group_nr=%s AND contactgroups.contact_nr=contacts.nr' % group_nr)
+        ch.execute('SELECT email FROM contactgroups, contacts WHERE contactgroups.group_nr=%(group_nr)s AND contactgroups.contact_nr=contacts.nr', { 'group_nr': group_nr })
 
         for row in ch.fetchall():
             new_state = self.state_to_str(check_result[2])
@@ -178,7 +178,7 @@ class poller:
         if type_ == 'local':
             ch = dbh.cursor(dictionary=True)
 
-            ch.execute('SELECT host FROM hosts WHERE nr=%s' % host_nr)
+            ch.execute('SELECT host FROM hosts WHERE nr=%(host_nr)s', { 'host_nr': host_nr })
 
             meta_data = ch.fetchone()
 
@@ -186,7 +186,7 @@ class poller:
                 print(f'Host {host_nr} missing')
 
             else:
-                ch.execute('SELECT cmdline, check_name FROM check_local WHERE nr=%s' % check_nr)
+                ch.execute('SELECT cmdline, check_name FROM check_local WHERE nr=%(check_nr)s', { 'check_nr': check_nr })
 
                 row = ch.fetchone()
 
@@ -198,7 +198,7 @@ class poller:
                     cmdline = row['cmdline']
 
                     # other k/vs
-                    ch.execute('SELECT `key`, `value` FROM keyvalue WHERE host_nr=%s AND check_nr=%s' % (host_nr, base_nr))
+                    ch.execute('SELECT `key`, `value` FROM keyvalue WHERE host_nr=%(host_nr)s AND check_nr=%(base_nr)s', { 'host_nr': host_nr, 'base_nr': base_nr })
 
                     for row in ch.fetchall():
                         meta_data[row['key']] = row['value']
@@ -273,7 +273,7 @@ class poller:
                     print(f'Starting check {row["check_nr"]}')
 
                     # commit before invoking check so that it won't get executed too soon (e.g. when check_interval < check_execution_duration)
-                    ch.execute("UPDATE checks SET last_check = NOW() WHERE nr=%s" % row['nr'])
+                    ch.execute("UPDATE checks SET last_check = NOW() WHERE nr=%(nr)s", { 'nr': row['nr'] })
                     dbh.commit()
 
                     cur_th = threading.Thread(target=self._do_poller, args=(row['nr'], row['type'], row['check_nr'], row['host_nr'], row['status'], row['contactgroups_nr']))
