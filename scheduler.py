@@ -64,6 +64,9 @@ class poller:
                     # print(f'Performance data: {performance_pairs}')
 
                     for pair in performance_pairs:
+                        if pair == '':
+                            continue
+
                         try:
                             key, value = pair.split('=')
 
@@ -271,15 +274,21 @@ class poller:
                 ch.execute('''
 SELECT
     nr, type, check_nr, host_nr, status, contactgroups_nr, muted,
-    (SELECT
+    (
+     -- are other checks dependent on this check?
+     SELECT
          COUNT(*) > 0
      FROM
-         (SELECT
+         (
+          -- get a list of checks to which an other check depends on
+          SELECT
              distinct depends_on_check_nr
           FROM
              check_dependencies, checks
           WHERE
-             check_dependencies.check_nr IN (SELECT
+             check_dependencies.check_nr IN (
+                                             -- find checks that need an update and are enabled
+                                             SELECT
                                                 nr
                                              FROM
                                                  checks
