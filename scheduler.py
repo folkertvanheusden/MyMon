@@ -274,6 +274,7 @@ class poller:
                 ch.execute('''
 SELECT
     nr, type, check_nr, host_nr, status, contactgroups_nr, muted,
+    nr AS base_nr,
     (
      -- are other checks dependent on this check?
      SELECT
@@ -300,19 +301,34 @@ SELECT
              (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00')
          ) AS prio_in
      WHERE
-         prio_in.depends_on_check_nr=nr
-    ) AS prio
+         prio_in.depends_on_check_nr=base_nr
+    ) AS prio,
+    (
+     -- get status of the check we're depending on
+     SELECT
+        status
+     FROM
+        check_dependencies, checks
+     WHERE
+        check_dependencies.check_nr=base_nr AND depends_on_check_nr=checks.nr
+    ) AS depending_on_state
 FROM
     checks
 WHERE
     (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1
 ORDER BY
     prio DESC,
-    last_check ASC''')
+    last_check ASC
+''')
 
                 wait_for = []
 
                 for row in ch.fetchall():
+                    if row['depending_on_state'] != 'ok' and row['depending_on_state'] != None:
+                        print(f'Not checking {row["check_nr"]} because parent is {row["depending_on_state"]}')
+
+                        continue
+
                     print(f'Starting check {row["check_nr"]}, prio: {row["prio"]}')
 
                     # commit before invoking check so that it won't get executed too soon (e.g. when check_interval < check_execution_duration)
