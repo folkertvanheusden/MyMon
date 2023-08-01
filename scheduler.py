@@ -374,6 +374,9 @@ ORDER BY
 
                         time.sleep(sleep_n)
 
+                else:
+                    time.sleep(2.5)
+
                 ch.close()
 
                 if any_started:
