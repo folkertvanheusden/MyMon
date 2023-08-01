@@ -37,7 +37,7 @@ class poller:
     def _do_local_check(self, cmdline):
         start_t = time.time()
 
-        print(f'Invoking {cmdline}')
+        # print(f'Invoking {cmdline}')
 
         result = subprocess.run(cmdline, capture_output=True, shell=True, timeout=15.0)
 
@@ -45,7 +45,7 @@ class poller:
 
         rc_str = result.stdout.decode('utf-8').rstrip('\n')
 
-        print(f'Reply: {rc_str}, return code: {result.returncode}')
+        # print(f'Reply: {rc_str}, return code: {result.returncode}')
 
         values = dict()
 
@@ -61,7 +61,7 @@ class poller:
                 if len(perf_str) > 0:
                     performance_pairs = perf_str.split(' ')
 
-                    print(f'Performance data: {performance_pairs}')
+                    # print(f'Performance data: {performance_pairs}')
 
                     for pair in performance_pairs:
                         try:
@@ -239,7 +239,7 @@ class poller:
             print(f'Unexpected check result {check_result}')
 
         if check_result_data != None:
-            print(f'Result: {check_result_data}')
+            # print(f'Result: {check_result_data}')
 
             # previous_state comes from the database and is thus a string (ok, warning, ...)
             if self.state_to_str(check_result[2]) != previous_state:
@@ -268,18 +268,45 @@ class poller:
                 any_started = False
 
                 # see what needs to be checked now
-                ch.execute("SELECT nr, type, check_nr, host_nr, status, contactgroups_nr, muted FROM checks WHERE (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1 ORDER BY last_check ASC")
+                ch.execute('''
+SELECT
+    nr, type, check_nr, host_nr, status, contactgroups_nr, muted,
+    (SELECT COUNT(*) > 0 FROM (SELECT distinct depends_on_check_nr FROM check_dependencies, checks WHERE check_dependencies.check_nr IN (SELECT nr FROM checks WHERE (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1) AND checks.nr=depends_on_check_nr AND (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00')) AS prio_in WHERE prio_in.depends_on_check_nr=nr) AS prio
+FROM
+    checks
+WHERE
+    (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1
+ORDER BY
+    prio DESC,
+    last_check ASC''')
+
+                wait_for = []
 
                 for row in ch.fetchall():
-                    print(f'Starting check {row["check_nr"]}')
+                    print(f'Starting check {row["check_nr"]}, prio: {row["prio"]}')
 
                     # commit before invoking check so that it won't get executed too soon (e.g. when check_interval < check_execution_duration)
                     ch.execute("UPDATE checks SET last_check = NOW() WHERE nr=%(nr)s", { 'nr': row['nr'] })
                     dbh.commit()
 
                     cur_th = threading.Thread(target=self._do_poller, args=(row['nr'], row['type'], row['check_nr'], row['host_nr'], row['status'], row['contactgroups_nr'], row['muted']))
-                    cur_th.daemon = True
-                    cur_th.start()
+
+                    # wait for the prio checks to be finished first
+                    if row['prio']:
+                        # if a dependency depends on another dependency, then we need to wait for that one first
+                        # but multiple level dependency has not been implemented yet
+                        wait_for.append(cur_th)
+                        cur_th.start()
+
+                    else:
+                        for th_id in wait_for:
+                            th_id.join()
+
+                        wait_for = []
+
+                        # other checks can finish when they're ready
+                        cur_th.daemon = True
+                        cur_th.start()
 
                     any_started = True
 
