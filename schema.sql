@@ -1,3 +1,14 @@
+CREATE TABLE `check_dependencies` (
+  `nr` int(6) NOT NULL AUTO_INCREMENT,
+  `check_nr` int(6) NOT NULL,
+  `depends_on_check_nr` int(6) NOT NULL,
+  PRIMARY KEY (`nr`),
+  KEY `depends_on_check_nr` (`depends_on_check_nr`),
+  KEY `check_nr` (`check_nr`,`depends_on_check_nr`),
+  KEY `check_dependencies_idx_check_nr` (`check_nr`),
+  CONSTRAINT `check_dependencies_ibfk_1` FOREIGN KEY (`check_nr`) REFERENCES `checks` (`nr`),
+  CONSTRAINT `check_dependencies_ibfk_2` FOREIGN KEY (`depends_on_check_nr`) REFERENCES `checks` (`nr`)
+);
 CREATE TABLE `check_local` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
   `cmdline` text NOT NULL,
@@ -5,7 +16,6 @@ CREATE TABLE `check_local` (
   PRIMARY KEY (`nr`),
   UNIQUE KEY `c_unique` (`cmdline`(255),`check_name`)
 );
-
 CREATE TABLE `check_remote` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
   `host` varchar(256) NOT NULL,
@@ -14,7 +24,6 @@ CREATE TABLE `check_remote` (
   `check_name` varchar(255) NOT NULL,
   PRIMARY KEY (`nr`)
 );
-
 CREATE TABLE `checks` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
   `type` enum('local','remote') NOT NULL,
@@ -30,10 +39,10 @@ CREATE TABLE `checks` (
   PRIMARY KEY (`nr`),
   KEY `host_nr` (`host_nr`),
   KEY `contactgroups_nr` (`contactgroups_nr`),
+  KEY `checks_idx_last_check_enabled_nr` (`last_check`,`enabled`,`nr`),
   CONSTRAINT `checks_ibfk_2` FOREIGN KEY (`host_nr`) REFERENCES `hosts` (`nr`),
   CONSTRAINT `checks_ibfk_3` FOREIGN KEY (`contactgroups_nr`) REFERENCES `contactgroups` (`group_nr`)
 );
-
 CREATE TABLE `contactgroups` (
   `group_nr` int(6) NOT NULL,
   `contact_nr` int(6) NOT NULL,
@@ -41,28 +50,24 @@ CREATE TABLE `contactgroups` (
   KEY `contact_nr` (`contact_nr`),
   CONSTRAINT `contactgroups_ibfk_1` FOREIGN KEY (`contact_nr`) REFERENCES `contacts` (`nr`)
 );
-
 CREATE TABLE `contactgroupsnames` (
   `group_nr` int(6) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   PRIMARY KEY (`group_nr`),
   UNIQUE KEY `name` (`name`)
 );
-
 CREATE TABLE `contacts` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
   `email` varchar(255) NOT NULL,
   PRIMARY KEY (`nr`),
   KEY `inr` (`nr`)
 );
-
 CREATE TABLE `hosts` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
   `host` varchar(255) NOT NULL,
   PRIMARY KEY (`nr`),
   UNIQUE KEY `host_unique` (`host`)
 );
-
 CREATE TABLE `keyvalue` (
   `nr` int(6) NOT NULL AUTO_INCREMENT,
   `host_nr` int(6) NOT NULL,
