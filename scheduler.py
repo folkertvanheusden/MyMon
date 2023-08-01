@@ -332,7 +332,7 @@ ORDER BY
                     any_started = True
 
                 # calculate how long to wait
-                ch.execute('SELECT MIN(DATE_ADD(last_check, INTERVAL `interval` SECOND)) - NOW() AS `interval` FROM checks')
+                ch.execute('SELECT MIN(DATE_ADD(last_check, INTERVAL `interval` SECOND)) - NOW() AS `interval` FROM checks WHERE enabled=1')
 
                 row = ch.fetchone()
                 sleep_n_in = row['interval']
