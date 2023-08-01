@@ -78,9 +78,9 @@ if len(sys.argv) < 2:
     print('\tlist-contacts')
     print()
     print('configure a check:')
-    print('\tadd-check "local/remote" "check-interval" "hostname" "contact" "check-name"')
+    print('\tadd-check "local/remote" "check-interval" "hostname" "contact-group" "check-name"')
     print('\t- check-interval in seconds')
-    print('\t- contact is the configured e-mail address (see add-contact)')
+    print('\t- contact-group is the configured contact-group to alert')
     print('\t- check-name is the configured check (see add-local-check)')
     print('\tlist-checks')
     print()
@@ -133,7 +133,7 @@ elif sys.argv[1] == 'list-local-checks':
 
 elif sys.argv[1] == 'add-check':
     if len(sys.argv) != 7:
-        print(f'Usage: {sys.argv[1]} "local/remote" "check-interval" "hostname" "contact" "check-name"')
+        print(f'Usage: {sys.argv[1]} "local/remote" "check-interval" "hostname" "contact-group" "check-name"')
 
     else:
         local_check = sys.argv[2] == 'local'
@@ -150,7 +150,15 @@ elif sys.argv[1] == 'add-check':
 
         host_name = lookup(dbh, 'hosts', 'host', sys.argv[4])
 
-        contact = lookup(dbh, 'contacts', 'email', sys.argv[5])
+        contact_group_name = sys.argv[5]
+
+        ch.execute('SELECT DISTINCT contactgroups.group_nr AS group_nr FROM contactgroups, contactgroupsnames WHERE contactgroupsnames.group_nr=contactgroups.group_nr AND name=%(cg_name)s', { 'cg_name' : contact_group_name })
+        row = ch.fetchone()
+        if row == None:
+            print(f'Contact-group "{contact_group_name}" is not known, add using add-contact')
+            sys.exit(1)
+
+        group_nr = row['group_nr']
 
         check_nr = lookup(dbh, 'check_local' if local_check else 'check_remote', 'check_name', sys.argv[6])
 
@@ -158,18 +166,14 @@ elif sys.argv[1] == 'add-check':
             print(f'Hostname "{host_name}" is not known, add using add-host')
             sys.exit(1)
 
-        if contact == None:
-            print(f'Contact "{contact}" is not known, add using add-contact')
-            sys.exit(1)
-
         values = { 'type' : 'local' if local_check else 'remote',
                    'check_nr' : check_nr,
                    'interval' : interval,
                    'host_nr' : host_name,
-                   'contact_nr' : contact
+                   'contactgroups_nr' : group_nr
                    }
 
-        ch.execute('INSERT INTO checks (type, check_nr, last_check, `interval`, status, host_nr, last_check_result_str, contact_nr) VALUES(%(type)s, %(check_nr)s, "0000-00-00 00:00:00", %(interval)s, "unknown", %(host_nr)s, "", %(contact_nr)s)', values)
+        ch.execute('INSERT INTO checks (type, check_nr, last_check, `interval`, status, host_nr, last_check_result_str, contactgroups_nr, enabled) VALUES(%(type)s, %(check_nr)s, "0000-00-00 00:00:00", %(interval)s, "unknown", %(host_nr)s, "", %(contactgroups_nr)s, 1)', values)
 
 elif sys.argv[1] == 'list-checks':
     list_checks(dbh)
