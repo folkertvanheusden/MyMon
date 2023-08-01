@@ -329,7 +329,7 @@ ORDER BY
 
                         continue
 
-                    print(f'Starting check {row["check_nr"]}, prio: {row["prio"]}')
+                    print(f'Starting check {row["nr"]} (type: {row["check_nr"]}), prio: {row["prio"]}')
 
                     # commit before invoking check so that it won't get executed too soon (e.g. when check_interval < check_execution_duration)
                     ch.execute("UPDATE checks SET last_check = NOW() WHERE nr=%(nr)s", { 'nr': row['nr'] })
