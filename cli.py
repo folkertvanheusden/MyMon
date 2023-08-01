@@ -114,7 +114,12 @@ elif sys.argv[1] == 'add-contact':
     ch.execute('INSERT INTO contactgroups(contact_nr, group_nr) VALUES(%s, %s)' % (contact_nr, group_nr))
 
 elif sys.argv[1] == 'list-contacts':
-    list_table(dbh, "contacts", ("email",))
+    ch.execute('select email, name from contacts, contactgroups, contactgroupsnames where contacts.nr=contactgroups.contact_nr and contactgroups.group_nr=contactgroupsnames.group_nr')
+
+    for row in ch.fetchall():
+        col_vals = [row[col] for col in row]
+
+        print('\t'.join(col_vals))
 
 elif sys.argv[1] == 'add-local-check':
     if len(sys.argv) != 4:

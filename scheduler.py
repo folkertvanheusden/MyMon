@@ -164,7 +164,7 @@ class poller:
 
         dbh.close()
 
-    def _do_poller(self, base_nr, type_, check_nr, host_nr, previous_state, contactgroups_nr):
+    def _do_poller(self, base_nr, type_, check_nr, host_nr, previous_state, contactgroups_nr, muted):
         dbh = mysql.connector.connect(host=self.mysql_host, user=self.mysql_user, password=self.mysql_pass, database=self.mysql_db)
 
         # get cmdline, replace macros, invoke
@@ -243,7 +243,8 @@ class poller:
 
             # previous_state comes from the database and is thus a string (ok, warning, ...)
             if self.state_to_str(check_result[2]) != previous_state:
-                self._send_email(contactgroups_nr, meta_data['host'], check_name, check_result, previous_state)
+                if muted == 0:
+                    self._send_email(contactgroups_nr, meta_data['host'], check_name, check_result, previous_state)
 
             ch = dbh.cursor()
             ch.execute('UPDATE checks SET status=%(status)s, last_check_result_str=%(result_str)s WHERE nr=%(nr)s', check_result_data)
@@ -267,7 +268,7 @@ class poller:
                 any_started = False
 
                 # see what needs to be checked now
-                ch.execute("SELECT nr, type, check_nr, host_nr, status, contactgroups_nr FROM checks WHERE (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1 ORDER BY last_check ASC")
+                ch.execute("SELECT nr, type, check_nr, host_nr, status, contactgroups_nr, muted FROM checks WHERE (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1 ORDER BY last_check ASC")
 
                 for row in ch.fetchall():
                     print(f'Starting check {row["check_nr"]}')
@@ -276,7 +277,7 @@ class poller:
                     ch.execute("UPDATE checks SET last_check = NOW() WHERE nr=%(nr)s", { 'nr': row['nr'] })
                     dbh.commit()
 
-                    cur_th = threading.Thread(target=self._do_poller, args=(row['nr'], row['type'], row['check_nr'], row['host_nr'], row['status'], row['contactgroups_nr']))
+                    cur_th = threading.Thread(target=self._do_poller, args=(row['nr'], row['type'], row['check_nr'], row['host_nr'], row['status'], row['contactgroups_nr'], row['muted']))
                     cur_th.daemon = True
                     cur_th.start()
 
