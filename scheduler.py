@@ -206,7 +206,7 @@ class poller:
                     # replace macros
                     processed_cmdline = self.do_escapes(cmdline, meta_data)
 
-                    print(f"Executing local check {check_nr}: {cmdline}: {processed_cmdline}")
+                    print(f"Executing local check {check_nr}: {processed_cmdline}")
 
                     check_result = self._do_local_check(processed_cmdline)
 
@@ -271,7 +271,28 @@ class poller:
                 ch.execute('''
 SELECT
     nr, type, check_nr, host_nr, status, contactgroups_nr, muted,
-    (SELECT COUNT(*) > 0 FROM (SELECT distinct depends_on_check_nr FROM check_dependencies, checks WHERE check_dependencies.check_nr IN (SELECT nr FROM checks WHERE (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND enabled=1) AND checks.nr=depends_on_check_nr AND (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00')) AS prio_in WHERE prio_in.depends_on_check_nr=nr) AS prio
+    (SELECT
+         COUNT(*) > 0
+     FROM
+         (SELECT
+             distinct depends_on_check_nr
+          FROM
+             check_dependencies, checks
+          WHERE
+             check_dependencies.check_nr IN (SELECT
+                                                nr
+                                             FROM
+                                                 checks
+                                             WHERE
+                                                 (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00') AND
+                                                 enabled=1
+                                            ) AND
+             checks.nr=depends_on_check_nr AND
+             (now() >= DATE_ADD(last_check, INTERVAL `interval` SECOND) OR last_check = '0000-00-00 00:00:00')
+         ) AS prio_in
+     WHERE
+         prio_in.depends_on_check_nr=nr
+    ) AS prio
 FROM
     checks
 WHERE
