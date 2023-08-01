@@ -10,6 +10,12 @@ programs) will be inserted into an InfluxDB.
 how to implement
 ----------------
 
+* apt install python3-pip influxdb-client influxdb mariadb-server
+
+* python3 -m pip install emails
+* python3 -m pip install influxdb
+* python3 -m pip install mysql.connector
+
 * create a database in mysql
 
 * insert the database schema in the newly created mysql db
