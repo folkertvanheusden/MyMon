@@ -26,6 +26,7 @@ CREATE TABLE `checks` (
   `last_check_result_str` text NOT NULL,
   `enabled` int(1) NOT NULL DEFAULT 0,
   `contactgroups_nr` int(6) NOT NULL,
+  `muted` int(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`nr`),
   KEY `host_nr` (`host_nr`),
   KEY `contactgroups_nr` (`contactgroups_nr`),
