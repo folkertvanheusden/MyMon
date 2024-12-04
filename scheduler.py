@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#! /usr/bin/env python3
 
 # python3 -m pip install emails
 # python3 -m pip install influxdb
