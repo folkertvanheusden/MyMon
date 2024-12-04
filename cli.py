@@ -53,6 +53,7 @@ WHERE
     r.nr=checks.check_nr AND contacts.nr=contactgroups.contact_nr and contactgroups.group_nr=contactgroupsnames.group_nr AND contactgroups.group_nr=contactgroups_nr
 ''')
 
+    print('type\tinterval\tstatus\tname\thost\tcontacts')
     for row in ch.fetchall():
         col_vals = [str(row[col]) for col in row]
 
