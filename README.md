@@ -14,11 +14,11 @@ how to implement
 
 * python3 -m pip install emails influxdb mysql.connector
 
-* create a database in mysql
+* create a database in mysql (`CREATE DATABASE MyMon;`)
 
 * insert the database schema in the newly created mysql db
 ```
-mysql -u user -ppassword newdb < schema.sql
+$ mysql -u user -ppassword newdb < schema.sql
 ```
 
 * set access rights:
@@ -28,9 +28,9 @@ grant insert,select,update on newdb.* to user@localhost
 flush privileges;
 ```
 
-* create a database in influxdb
+* create a database in influxdb (in `CREATE DATABASE MyMon;` from 'influx')
 
-* copy the settings into configuration.py
+* copy the settings from the previous steps into configuration.py
 
 * using 'cli.py' you can add a checks to the system, e.g.:
 ```
