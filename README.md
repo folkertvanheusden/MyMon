@@ -34,10 +34,10 @@ flush privileges;
 
 * using 'cli.py' you can add a checks to the system, e.g.:
 ```
-./cli.py add-contact contactgroup user@domain.com
+./cli.py add-contact mycontactgroupname user@domain.com
 ./cli.py add-host some.server.tld
 ./cli.py add-local-check 'check_ssl_cert' '/usr/lib/nagios/plugins/check_ssl_cert -H %host%'
-./cli.py add-check local 300 some.server.tld user@domain.com check_ssl_cert
+./cli.py add-check local 300 some.server.tld mycontactgroupname check_ssl_cert
 ```
 
   Run cli.py without parameters to show a list of commands and their parameters.
