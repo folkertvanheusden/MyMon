@@ -83,6 +83,8 @@ if len(sys.argv) < 2:
     print('\t- check-interval in seconds')
     print('\t- contact-group is the configured contact-group to alert')
     print('\t- check-name is the configured check (see add-local-check)')
+    print()
+    print('list all checks (with their status as well):')
     print('\tlist-checks')
     print()
     print()
