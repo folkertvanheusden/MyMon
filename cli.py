@@ -53,11 +53,10 @@ WHERE
     r.nr=checks.check_nr AND contacts.nr=contactgroups.contact_nr and contactgroups.group_nr=contactgroupsnames.group_nr AND contactgroups.group_nr=contactgroups_nr
 ''')
 
-    print('type\tinterval\tstatus\tname\thost\tcontacts\tlast check')
+    print('type   interval status    name               host               contacts                last check')
     for row in ch.fetchall():
-        col_vals = [str(row[col]) for col in row]
-
-        print('\t'.join(col_vals))
+        out = f'{row["type"]:6s} {row["interval"]:8d} {row["status"]:9s} {row["name"]:18s} {row["host"]:18s} {row["email"]:25s} {row["last_check"]:20s}'
+        print(out)
 
     ch.close()
 
