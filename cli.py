@@ -39,21 +39,21 @@ def list_checks(dbh):
 
     ch.execute('''
 SELECT
-    checks.type as type, `interval`, status, l.check_name AS name, hosts.host as host, contacts.email as email
+    checks.type as type, `interval`, status, l.check_name AS name, hosts.host as host, contacts.email as email, last_check
 FROM
     checks, check_local as l, hosts, contacts, contactgroups, contactgroupsnames
 WHERE
     l.nr=checks.check_nr AND contacts.nr=contactgroups.contact_nr and contactgroups.group_nr=contactgroupsnames.group_nr AND contactgroups.group_nr=contactgroups_nr
 UNION
 SELECT
-    checks.type as type, `interval`, status, r.check_name AS name, hosts.host as host, contacts.email as email
+    checks.type as type, `interval`, status, r.check_name AS name, hosts.host as host, contacts.email as email, last_check
 FROM
     checks, check_remote as r, hosts, contacts, contactgroups, contactgroupsnames
 WHERE
     r.nr=checks.check_nr AND contacts.nr=contactgroups.contact_nr and contactgroups.group_nr=contactgroupsnames.group_nr AND contactgroups.group_nr=contactgroups_nr
 ''')
 
-    print('type\tinterval\tstatus\tname\thost\tcontacts')
+    print('type\tinterval\tstatus\tname\thost\tcontacts\tlast check')
     for row in ch.fetchall():
         col_vals = [str(row[col]) for col in row]
 
